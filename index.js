@@ -19,7 +19,13 @@ class ServerlessS3Sync {
         usage: 'Sync directories and S3 prefixes',
         lifecycleEvents: [
           'sync'
-        ]
+        ],
+        options: {
+          contents: {
+            usage: 'Specify the "contentsName" you want to sync. (e.g. "--contents api-images")',
+            shortcut: 'c',
+          }
+        }
       }
     };
 
@@ -50,7 +56,17 @@ class ServerlessS3Sync {
     }
     cli.consoleLog(`${messagePrefix}${chalk.yellow('Syncing directories and S3 prefixes...')}`);
     const servicePath = this.servicePath;
-    const promises = s3Sync.map((s) => {
+    const promises = s3Sync.map(async (s, index) => {
+      if (s.hasOwnProperty('contentsName') && this.options.contents) {
+        if (s.contentsName !== this.options.contents) {
+          cli.consoleLog(`${messagePrefix}${chalk.yellow('Skipped contents: ' + s.contentsName)}`);
+          return Promise.resolve();
+        }
+      }
+      if (index > 0) {
+        // Wait as it may not be synchronized.
+        await this.sleep(5000);
+      }
       let bucketPrefix = '';
       if (s.hasOwnProperty('bucketPrefix')) {
         bucketPrefix = s.bucketPrefix;
@@ -177,6 +193,12 @@ class ServerlessS3Sync {
         cli.consoleLog('');
         cli.consoleLog(`${messagePrefix}${chalk.yellow('Removed.')}`);
       });
+  }
+
+  sleep(msec) {
+    return new Promise(resolve => {
+      setTimeout(() => resolve(), msec);
+    });
   }
 }
 
