@@ -260,12 +260,20 @@ class ServerlessS3Sync {
       }
       const localDir = path.join(servicePath, s.localDir);
       let filesToSync = [];
+      let ignoreFiles = [];
       if(Array.isArray(s.params)) {
         s.params.forEach((param) => {
           const glob = Object.keys(param)[0];
           let files = this.getLocalFiles(localDir, []);
           minimatch.match(files, `${path.resolve(localDir)}${path.sep}${glob}`, {matchBase: true}).forEach((match) => {
-            filesToSync.push({name: match, params: this.extractMetaParams(param)});
+            const params = this.extractMetaParams(param);
+            if (ignoreFiles.includes(match)) return;
+            if (params['OnlyForEnv'] && params['OnlyForEnv'] !== this.options.env) {
+              ignoreFiles.push(match);
+              filesToSync = filesToSync.filter(e => e.name !== match);
+              return;
+            }
+            filesToSync.push({name: match, params});
           });
         });
       }
