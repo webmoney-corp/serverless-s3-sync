@@ -131,17 +131,25 @@ class ServerlessS3Sync {
               followSymlinks: followSymlinks,
               getS3Params: (localFile, stat, cb) => {
                 const s3Params = {};
+                let onlyForEnv;
 
                 if(Array.isArray(s.params)) {
                   s.params.forEach((param) => {
                     const glob = Object.keys(param)[0];
                     if(minimatch(localFile, `${path.resolve(localDir)}/${glob}`)) {
                       Object.assign(s3Params, this.extractMetaParams(param) || {});
+                      onlyForEnv = s3Params['OnlyForEnv'] || onlyForEnv;
                     }
                   });
+                  // to avoid parameter validation error
+                  delete s3Params['OnlyForEnv'];
                 }
 
-                cb(null, s3Params);
+                if (onlyForEnv && onlyForEnv !== this.options.env) {
+                  cb(null, null);
+                } else {
+                  cb(null, s3Params);
+                }
               },
               s3Params: {
                 Bucket: bucketName,
