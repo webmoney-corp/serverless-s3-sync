@@ -323,8 +323,20 @@ class ServerlessS3Sync {
   }
 
   getLocalFiles(dir, files) {
+    try {
+      fs.accessSync(dir, fs.constants.R_OK);
+    } catch (e) {
+      console.log(`The directory ${dir} does not exist.`);
+      return files;
+    }
     fs.readdirSync(dir).forEach(file => {
       let fullPath = path.join(dir, file);
+      try {
+        fs.accessSync(fullPath, fs.constants.R_OK);
+      } catch (e) {
+        console.log(`The file ${fullPath} doesn not exist.`);
+        return;
+      }
       if (fs.lstatSync(fullPath).isDirectory()) {
         this.getLocalFiles(fullPath, files);
       } else {
@@ -333,6 +345,7 @@ class ServerlessS3Sync {
     });
     return files;
   }
+
 
   extractMetaParams(config) {
     const validParams = {};
