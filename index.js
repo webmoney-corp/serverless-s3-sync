@@ -273,6 +273,8 @@ class ServerlessS3Sync {
               filesToSync = filesToSync.filter(e => e.name !== match);
               return;
             }
+            // to avoid Unexpected Parameter error
+            delete params['OnlyForEnv'];
             filesToSync.push({name: match, params});
           });
         });
@@ -305,7 +307,7 @@ class ServerlessS3Sync {
               };
               const uploader = this.client().copyObject(params);
               uploader.on('error', (err) => {
-                throw err;
+                cli.consoleLog(`${messagePrefix}${chalk.red(`An Error occurred (but continue syncMetadata) - ${file.name} : ${err}`)}`);
               });
               uploader.on('end', () => {
                 resolve('done');
